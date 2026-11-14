@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>한결 히어로즈 가챠</title>
+<style>
+  :root {
+    --green: #8fba4f;
+    --green-light: #a6c57a;
+    --green-pale: #dce9c8;
+    --green-dark: #719b3c;
+    --green-deep: #54772d;
+    --chrome-hi: #ffffff;
+    --chrome-mid: #d7dad8;
+    --chrome-dark: #858b87;
+    --paper: #fffef9;
+    --ink: #26301f;
+  }
+  * { box-sizing: border-box; }
+  html, body { width: 100%; min-height: 100%; margin: 0; }
+  body {
+    overflow: hidden;
+    background: #fff;
+    color: var(--ink);
+    font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; }
+  .stage {
+    position: relative;
+    width: 100%;
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #fff;
+    isolation: isolate;
+  }
+
+  /* The machine is the only visible element before a draw. */
+  .machine {
+    position: relative;
+    width: 420px;
+    height: 700px;
+    flex: none;
+    transform: translateY(1px);
+    filter: drop-shadow(0 18px 14px rgba(37, 57, 24, .14));
+    user-select: none;
+  }
+  .machine-shadow {
+    position: absolute;
+    z-index: 0;
+    left: 70px;
+    bottom: 1px;
+    width: 280px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(55, 75, 39, .14);
+    filter: blur(10px);
+  }
+
+  /* Transparent globe and its twelve, permanently replenished balls. */
+  .globe {
+    position: absolute;
+    z-index: 2;
+    top: 68px;
+    left: 33px;
+    width: 354px;
+    height: 356px;
+    overflow: hidden;
+    border: 7px solid rgba(190, 199, 192, .74);
+    border-radius: 49% 49% 46% 46% / 47% 47% 45% 45%;
+    background: linear-gradient(112deg, rgba(255,255,255,.66), rgba(238,246,229,.18) 48%, rgba(255,255,255,.43));
+    box-shadow:
+      inset 13px 7px 22px rgba(255,255,255,.94),
+      inset -12px -8px 25px rgba(69,93,52,.10),
+      0 3px 8px rgba(67,81,58,.08);
+  }
+  .globe::before {
+    content: "";
+    position: absolute;
+    z-index: 7;
+    top: 28px;
+    left: 31px;
+    width: 37px;
+    height: 228px;
+    border-radius: 50%;
+    transform: rotate(12deg);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.62), transparent);
+    filter: blur(5px);
+    pointer-events: none;
+  }
+  .globe::after {
+    content: "";
+    position: absolute;
+    z-index: 7;
+    top: 55px;
+    right: 24px;
+    width: 18px;
+    height: 175px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.31);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+  .balls { position: absolute; inset: 0; z-index: 3; }
+  .ball {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid rgba(67, 103, 39, .18);
+    background: radial-gradient(circle at 31% 24%, #fff 0 4%, var(--ball-hi) 13%, var(--ball) 53%, var(--ball-low) 100%);
+    box-shadow: inset -5px -7px 9px rgba(42,75,25,.15), inset 4px 4px 8px rgba(255,255,255,.85), 1px 3px 4px rgba(44,66,31,.13);
+  }
+  .ball::after {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 9px;
+    width: 8px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.86);
+    filter: blur(1px);
+  }
+  .ball:nth-child(1)  { left: 39px;  top: 145px; --ball-hi:#d9e9c1; --ball:#a9ca79; --ball-low:#789f43; }
+  .ball:nth-child(2)  { left: 111px; top: 141px; --ball-hi:#f3f7e9; --ball:#d0e2b0; --ball-low:#9ab96a; }
+  .ball:nth-child(3)  { left: 183px; top: 145px; --ball-hi:#d1e4b0; --ball:#93bc58; --ball-low:#668f35; }
+  .ball:nth-child(4)  { left: 255px; top: 149px; --ball-hi:#f4f8eb; --ball:#bad68d; --ball-low:#85aa4f; }
+  .ball:nth-child(5)  { left: 13px;  top: 203px; --ball-hi:#eaf3dc; --ball:#c1d99b; --ball-low:#8eae5b; }
+  .ball:nth-child(6)  { left: 85px;  top: 206px; --ball-hi:#d5e8b9; --ball:#a1c56d; --ball-low:#71983e; }
+  .ball:nth-child(7)  { left: 157px; top: 203px; --ball-hi:#f6f8ee; --ball:#d7e8bd; --ball-low:#a2c074; }
+  .ball:nth-child(8)  { left: 229px; top: 207px; --ball-hi:#cde3a7; --ball:#85b14a; --ball-low:#5d8431; }
+  .ball:nth-child(9)  { left: 39px;  top: 263px; --ball-hi:#f3f7e8; --ball:#c4dda0; --ball-low:#91b363; }
+  .ball:nth-child(10) { left: 111px; top: 265px; --ball-hi:#d9eabe; --ball:#a6c876; --ball-low:#739941; }
+  .ball:nth-child(11) { left: 183px; top: 263px; --ball-hi:#f5f8ed; --ball:#d5e6b9; --ball-low:#9ebc70; }
+  .ball:nth-child(12) { left: 255px; top: 265px; --ball-hi:#d1e4b0; --ball:#91b957; --ball-low:#638b34; }
+  .machine.shaking .ball { animation: ball-jiggle .19s ease-in-out infinite alternate; }
+  .machine.shaking .ball:nth-child(3n) { animation-delay: -.11s; }
+  .machine.shaking .ball:nth-child(4n) { animation-delay: -.06s; }
+  @keyframes ball-jiggle {
+    from { translate: -3px -3px; rotate: -7deg; }
+    to { translate: 4px 3px; rotate: 8deg; }
+  }
+
+  /* Chrome crown and central stem. */
+  .top-cap {
+    position: absolute;
+    z-index: 6;
+    top: 39px;
+    left: 50%;
+    width: 230px;
+    height: 51px;
+    transform: translateX(-50%);
+    border: 2px solid #929994;
+    border-radius: 50% / 44%;
+    background: linear-gradient(180deg, #fefefd 0%, #c6cbc8 17%, #f8f9f7 38%, #929994 67%, #e9ece9 88%, #a2a8a3 100%);
+    box-shadow: 0 5px 7px rgba(31,46,27,.19), inset 0 2px 3px #fff;
+  }
+  .top-cap::before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 58px;
+    height: 14px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: linear-gradient(180deg, #777e79, #f3f4f1 48%, #8c928d);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,.32);
+  }
+  .top-cap::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -17px;
+    width: 25px;
+    height: 25px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg,#8d948e,#fbfcfa 36%,#969d97);
+  }
+  .center-stem {
+    position: absolute;
+    z-index: 4;
+    top: 83px;
+    left: 50%;
+    width: 8px;
+    height: 160px;
+    transform: translateX(-50%);
+    border-radius: 5px;
+    background: linear-gradient(90deg,#848c85,#fbfcf9 36%,#a0a7a0 73%,#757d76);
+    box-shadow: 0 0 3px rgba(0,0,0,.2);
+  }
+  .center-stem::after {
+    content: "";
+    position: absolute;
+    bottom: -7px;
+    left: 50%;
+    width: 35px;
+    height: 15px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: linear-gradient(#fafbf8,#929991);
+  }
+
+  /* Green body, trim and dispensing area. */
+  .neck-ring {
+    position: absolute;
+    z-index: 8;
+    top: 397px;
+    left: 50%;
+    width: 292px;
+    height: 37px;
+    transform: translateX(-50%);
+    border: 2px solid #909791;
+    border-radius: 9px;
+    background: linear-gradient(180deg,#fbfcfa 0%,#aab0aa 23%,#f8f9f6 48%,#858d86 75%,#dfe3df 100%);
+    box-shadow: 0 4px 7px rgba(31,45,28,.16);
+  }
+  .body-shell {
+    position: absolute;
+    z-index: 9;
+    top: 419px;
+    left: 50%;
+    width: 264px;
+    height: 247px;
+    transform: translateX(-50%);
+    overflow: hidden;
+    border: 1px solid rgba(68,101,34,.48);
+    border-radius: 12px 12px 27px 27px;
+    background: linear-gradient(90deg,#5f8834 0%,#7da943 9%,#9ac45a 27%,#88b44a 51%,#77a33d 83%,#547a2e 100%);
+    box-shadow: inset 10px 0 14px rgba(255,255,255,.16), inset -12px 0 17px rgba(37,67,19,.19), 0 6px 10px rgba(44,66,29,.12);
+  }
+  .body-shell::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 13px;
+    background: linear-gradient(180deg,#fbfcfa,#a5aca6 45%,#f7f8f5);
+  }
+  .body-shell::after {
+    content: "";
+    position: absolute;
+    z-index: 2;
+    left: -5px;
+    bottom: 0;
+    width: 272px;
+    height: 18px;
+    border: 1px solid #949b95;
+    border-radius: 0 0 15px 15px;
+    background: linear-gradient(180deg,#f9faf8,#a1a8a1 48%,#e6e9e5);
+  }
+  .front-plate {
+    position: absolute;
+    top: 43px;
+    left: 50%;
+    width: 154px;
+    height: 133px;
+    transform: translateX(-50%);
+    border: 3px solid #8f9690;
+    border-radius: 5px;
+    background: linear-gradient(135deg,#f7f8f5,#b8beb8 31%,#f7f8f5 60%,#919991);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.75), 0 2px 4px rgba(0,0,0,.2);
+  }
+  .dial {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    width: 99px;
+    height: 99px;
+    transform: translateX(-50%);
+    border: 5px solid #9da49e;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 26%,#fff 0%,#e3e7e2 27%,#afb6af 63%,#f8f9f6 83%,#777f78 100%);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.21), 0 1px 2px rgba(255,255,255,.95);
+  }
+  .lever {
+    position: absolute;
+    z-index: 4;
+    top: 17px;
+    left: 50%;
+    width: 75px;
+    height: 67px;
+    transform: translateX(-50%);
+    border: 0;
+    padding: 0;
+    border-radius: 12px;
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    outline-offset: 5px;
+  }
+  .lever:active { cursor: grabbing; }
+  .lever-rod {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 13px;
+    height: 37px;
+    transform: translateX(-50%);
+    border: 1px solid #888f89;
+    border-radius: 5px;
+    background: linear-gradient(90deg,#858d86,#fff 35%,#b1b8b1 72%,#737b74);
+    box-shadow: 0 2px 3px rgba(0,0,0,.2);
+    transition: transform .2s cubic-bezier(.2,.8,.2,1);
+  }
+  .lever-grip {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 58px;
+    height: 16px;
+    transform: translateX(-50%);
+    border: 1px solid #7f8780;
+    border-radius: 5px;
+    background: linear-gradient(180deg,#fff 0%,#e8ebe7 30%,#969e97 57%,#d3d8d2 78%,#fff 100%);
+    box-shadow: 0 2px 3px rgba(0,0,0,.23);
+    transition: transform .2s cubic-bezier(.2,.8,.2,1);
+  }
+  .lever-grip::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.9);
+  }
+  .machine.pulling .lever-rod { transform: translate(-50%, 20px) rotate(5deg); }
+  .machine.pulling .lever-grip { transform: translate(-50%, 20px) rotate(5deg); }
+  .coin-slot {
+    position: absolute;
+    top: 19px;
+    right: 14px;
+    width: 20px;
+    height: 5px;
+    border-radius: 5px;
+    background: linear-gradient(#666f67,#f4f6f2,#798279);
+    box-shadow: 0 1px 1px rgba(255,255,255,.7);
+  }
+  .outlet {
+    position: absolute;
+    top: 183px;
+    left: 50%;
+    width: 124px;
+    height: 43px;
+    transform: translateX(-50%);
+    border: 2px solid #668d3a;
+    border-radius: 4px 4px 9px 9px;
+    background: linear-gradient(180deg,#355322,#1e3519 58%,#6d963d);
+    box-shadow: inset 0 3px 6px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.25);
+  }
+  .outlet::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 46px;
+    height: 4px;
+    transform: translateX(-50%);
+    border-radius: 4px;
+    background: rgba(209,231,185,.45);
+  }
+  .outlet-door {
+    position: absolute;
+    top: 222px;
+    left: 50%;
+    width: 124px;
+    height: 31px;
+    transform: translateX(-50%);
+    border: 2px solid #8d958e;
+    border-radius: 2px 2px 7px 7px;
+    background: linear-gradient(90deg,#929b93,#fff 24%,#c3cac3 50%,#f6f8f4 78%,#899189);
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.58), 0 3px 4px rgba(0,0,0,.18);
+  }
+  .outlet-door::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 7px;
+    width: 29px;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 3px;
+    background: #858e86;
+  }
+  .bottom-trim {
+    position: absolute;
+    z-index: 10;
+    left: 50%;
+    bottom: 16px;
+    width: 275px;
+    height: 18px;
+    transform: translateX(-50%);
+    border: 1px solid #8f9790;
+    border-radius: 0 0 13px 13px;
+    background: linear-gradient(180deg,#fafbf9,#a1a8a1 53%,#e8ebe7);
+  }
+
+  /* The dispensed capsule is separate from the twelve balls in the globe. */
+  .ejected-capsule {
+    position: absolute;
+    z-index: 15;
+    top: 578px;
+    left: 50%;
+    width: 72px;
+    height: 78px;
+    opacity: 0;
+    transform: translateX(-50%) scale(.18) rotate(-24deg);
+    pointer-events: none;
+  }
+  .ejected-capsule .half {
+    position: absolute;
+    left: 0;
+    width: 72px;
+    height: 40px;
+    border: 2px solid rgba(80,117,42,.56);
+    box-shadow: inset 5px 4px 9px rgba(255,255,255,.65), 0 3px 7px rgba(28,49,18,.2);
+  }
+  .ejected-capsule .half-top {
+    top: 0;
+    border-radius: 42px 42px 8px 8px;
+    background: linear-gradient(135deg,#d9e9c3,#a6c87a 57%,#709c40);
+    transform-origin: 50% 100%;
+  }
+  .ejected-capsule .half-bottom {
+    bottom: 0;
+    border-radius: 8px 8px 42px 42px;
+    background: linear-gradient(135deg,#a8c77a,#82aa4c 58%,#5c8432);
+    transform-origin: 50% 0%;
+  }
+  .ejected-capsule .seam {
+    position: absolute;
+    z-index: 2;
+    top: 36px;
+    left: -1px;
+    width: 74px;
+    height: 7px;
+    border-radius: 50%;
+    background: #e2edcf;
+    box-shadow: 0 1px 2px rgba(52,83,28,.18);
+  }
+  .ejected-capsule .scroll-core {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    top: 23px;
+    width: 33px;
+    height: 33px;
+    transform: translateX(-50%) scale(.25);
+    opacity: 0;
+    border: 2px solid #9eaf83;
+    border-radius: 50%;
+    background: repeating-linear-gradient(0deg,#fffef7 0 4px,#e8e4d4 4px 5px);
+    box-shadow: 0 2px 5px rgba(35,55,22,.17);
+  }
+  .machine.dispensing .ejected-capsule { animation: capsule-arrive .62s cubic-bezier(.18,.8,.25,1) forwards; }
+  .machine.opening .half-top { animation: capsule-open-top .48s ease-out forwards; }
+  .machine.opening .half-bottom { animation: capsule-open-bottom .48s ease-out forwards; }
+  .machine.opening .scroll-core { animation: core-emerge .35s .08s ease-out forwards; }
+  @keyframes capsule-arrive {
+    0% { opacity: 0; transform: translate(-50%, -70px) scale(.2) rotate(-30deg); }
+    65% { opacity: 1; transform: translate(-50%, 7px) scale(1.12) rotate(12deg); }
+    100% { opacity: 1; transform: translate(-50%, 0) scale(1) rotate(0); }
+  }
+  @keyframes capsule-open-top {
+    to { transform: translate(11px,-38px) rotate(24deg); }
+  }
+  @keyframes capsule-open-bottom {
+    to { transform: translate(-8px,38px) rotate(-19deg); }
+  }
+  @keyframes core-emerge {
+    to { opacity: 1; transform: translateX(-50%) scale(1); }
+  }
+
+  /* The scroll unrolls in the center and sits in front of the machine. */
+  .paper-layer {
+    position: fixed;
+    z-index: 30;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: transparent;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .22s ease, visibility .22s ease;
+  }
+  .paper-layer.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .scroll-paper {
+    position: relative;
+    width: min(570px, calc(100vw - 34px));
+    max-height: min(590px, calc(100svh - 36px));
+    min-height: 420px;
+    padding: 43px 45px 38px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid #c4d3ad;
+    border-radius: 6px;
+    background:
+      radial-gradient(ellipse at 9% 9%, rgba(174,198,139,.14), transparent 28%),
+      radial-gradient(ellipse at 92% 91%, rgba(174,198,139,.13), transparent 28%),
+      repeating-linear-gradient(0deg, rgba(97,120,70,.018) 0px, rgba(97,120,70,.018) 1px, transparent 1px, transparent 5px),
+      var(--paper);
+    box-shadow: 0 24px 70px rgba(42,59,29,.22), inset 0 0 0 7px rgba(150,184,106,.08);
+    transform: scaleY(.025) scaleX(.88);
+    transform-origin: center;
+    opacity: .7;
+  }
+  .paper-layer.visible .scroll-paper { animation: paper-unroll .82s cubic-bezier(.18,.8,.22,1) forwards; }
+  @keyframes paper-unroll {
+    0% { transform: scaleY(.025) scaleX(.88); opacity: .65; }
+    55% { transform: scaleY(1.035) scaleX(1.015); opacity: 1; }
+    78% { transform: scaleY(.98) scaleX(.995); }
+    100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+  }
+  .scroll-rod {
+    position: sticky;
+    z-index: 2;
+    left: -45px;
+    width: calc(100% + 90px);
+    height: 15px;
+    margin-left: -45px;
+    border: 1px solid #77964e;
+    border-radius: 9px;
+    background: linear-gradient(180deg,#d9e7c7 0%,#94b567 26%,#628c3d 52%,#9fbe79 76%,#e6eedb 100%);
+    box-shadow: 0 3px 6px rgba(54,76,35,.2);
+  }
+  .scroll-rod.top { position: absolute; top: 8px; }
+  .scroll-rod.bottom { position: absolute; bottom: 8px; }
+  .paper-content {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  .paper-layer.visible .paper-content { animation: paper-ink .48s .42s ease-out forwards; }
+  @keyframes paper-ink { to { opacity: 1; transform: translateY(0); } }
+  .paper-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed #b7c99d;
+    color: #719449;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .15em;
+  }
+  .paper-seal {
+    display: grid;
+    place-items: center;
+    width: 35px;
+    height: 35px;
+    flex: none;
+    border: 1px solid #91ad6c;
+    border-radius: 50%;
+    color: #6f9840;
+    font-size: 17px;
+    transform: rotate(-12deg);
+  }
+  .paper-category {
+    display: inline-block;
+    margin-top: 21px;
+    padding: 6px 11px;
+    border-radius: 99px;
+    background: #e9f0df;
+    color: #62873b;
+    font-size: 11px;
+    font-weight: 850;
+  }
+  .paper-title {
+    margin: 13px 0 16px;
+    color: #25331f;
+    font-size: clamp(25px, 4.3vw, 34px);
+    line-height: 1.25;
+    letter-spacing: -.06em;
+    font-weight: 950;
+    word-break: keep-all;
+  }
+  .paper-description {
+    margin: 0;
+    color: #4b5545;
+    font-size: 15px;
+    line-height: 1.85;
+    word-break: keep-all;
+  }
+  .mission-block {
+    margin-top: 22px;
+    padding: 17px 19px 18px;
+    border-left: 4px solid #8db554;
+    border-radius: 0 10px 10px 0;
+    background: rgba(226,237,211,.64);
+  }
+  .mission-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #648b3b;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .17em;
+  }
+  .mission-text {
+    color: #34442a;
+    font-size: 15px;
+    line-height: 1.8;
+    font-weight: 800;
+    word-break: keep-all;
+  }
+  .paper-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 19px;
+    padding-top: 12px;
+    border-top: 1px dashed #b7c99d;
+    color: #90a479;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .13em;
+  }
+  .sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0,0,0,0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  @media (max-width: 520px) {
+    .machine { transform: scale(.82); }
+    .scroll-paper {
+      width: calc(100vw - 28px);
+      min-height: 390px;
+      max-height: calc(100svh - 28px);
+      padding: 36px 25px 31px;
+    }
+    .scroll-rod { width: calc(100% + 50px); margin-left: -25px; }
+    .paper-description, .mission-text { font-size: 14px; }
+    .paper-title { font-size: 25px; }
+  }
+  @media (max-width: 380px) {
+    .machine { transform: scale(.73); }
+    .scroll-paper { padding-left: 21px; padding-right: 21px; }
+    .scroll-rod { width: calc(100% + 42px); margin-left: -21px; }
+  }
+  @media (max-height: 760px) and (min-width: 521px) {
+    .machine { transform: scale(.88); }
+  }
+  @media (max-height: 650px) and (min-width: 521px) {
+    .machine { transform: scale(.78); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+<main class="stage" aria-label="한결 히어로즈 경기 상황 뽑기 기계">
+  <section class="machine" id="machine">
+    <div class="machine-shadow"></div>
+    <div class="top-cap"></div>
+    <div class="center-stem"></div>
+    <div class="globe" aria-label="초록색 공 열두 개가 들어 있는 투명한 구형 통">
+      <div class="balls" id="balls">
+        <span class="ball"></span><span class="ball"></span><span class="ball"></span><span class="ball"></span>
+        <span class="ball"></span><span class="ball"></span><span class="ball"></span><span class="ball"></span>
+        <span class="ball"></span><span class="ball"></span><span class="ball"></span><span class="ball"></span>
+      </div>
+    </div>
+    <div class="neck-ring"></div>
+    <div class="body-shell">
+      <div class="front-plate">
+        <div class="dial"></div>
+        <button class="lever" id="lever" type="button" aria-label="레버를 당겨 경기 상황 뽑기">
+          <span class="lever-rod"></span>
+          <span class="lever-grip"></span>
+        </button>
+        <div class="coin-slot"></div>
+      </div>
+      <div class="outlet"></div>
+      <div class="outlet-door"></div>
+    </div>
+    <div class="bottom-trim"></div>
+    <div class="ejected-capsule" id="capsule" aria-hidden="true">
+      <span class="half half-top"></span>
+      <span class="half half-bottom"></span>
+      <span class="seam"></span>
+      <span class="scroll-core"></span>
+    </div>
+  </section>
+</main>
+
+<div class="paper-layer" id="paperLayer" aria-hidden="true">
+  <article class="scroll-paper" id="scrollPaper" role="dialog" aria-modal="true" aria-labelledby="paperTitle">
+    <div class="scroll-rod top"></div>
+    <div class="paper-content">
+      <div class="paper-meta">
+        <span>HANGYEOL HEROES · MATCH MISSION</span>
+        <span class="paper-seal">⚾</span>
+      </div>
+      <span class="paper-category" id="paperCategory"></span>
+      <h1 class="paper-title" id="paperTitle"></h1>
+      <p class="paper-description" id="paperDescription"></p>
+      <div class="mission-block">
+        <span class="mission-label">MISSION</span>
+        <div class="mission-text" id="paperMission"></div>
+      </div>
+      <div class="paper-foot">
+        <span id="paperNumber">MATCH NO. 01</span>
+        <span>MAKE YOUR PLAY</span>
+      </div>
+    </div>
+    <div class="scroll-rod bottom"></div>
+  </article>
+</div>
+<div class="sr-only" id="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const missions = [
+    {
+      category: '두뇌 싸움',
+      title: 'AI가 우리 작전을 다 알고 있다 🤖',
+      description: '상대 팀이 최신 AI 분석 시스템을 도입했다! 우리 팀의 지난 경기 기록과 선수들의 플레이 패턴을 모두 학습해 다음 작전을 정확하게 예측하고 있다. 평소처럼 공격하면 전부 막힐 것이 뻔한 상황. 심지어 어떤 선수가 어떤 특수 능력을 사용할지도 알고 있다!',
+      mission: 'AI의 예측을 완전히 벗어나 상대 팀의 허를 찌를 기발한 작전을 세워라!'
+    },
+    {
+      category: '작전 노출',
+      title: '상대 팀이 우리 사인을 해킹했다 📱',
+      description: '상대 팀이 우리 구단의 비밀 작전 사인을 해킹했다! 손가락 하나만 움직여도 상대 팀이 다음 플레이를 알아차린다. 기존에 사용하던 사인은 모두 노출된 상황. 이제부터는 새로운 방법으로 팀원들과 작전을 공유해야 한다.',
+      mission: '상대 팀이 절대 알아차릴 수 없는 새로운 작전 신호와 공격 전략을 만들어라!'
+    },
+    {
+      category: '황당 사건',
+      title: '마스코트가 공을 물고 튀었다 🐻',
+      description: '중요한 경기 도중 상대 팀 마스코트가 갑자기 경기장에 난입하더니 야구공을 물고 도망가기 시작했다! 선수들은 공을 되찾으러 뛰어가고 관중들은 웃음바다가 됐다. 경기 흐름은 완전히 엉망이 됐지만, 상대 팀도 당황한 것은 마찬가지다.',
+      mission: '마스코트의 돌발 행동을 역이용해 공을 되찾고 경기의 흐름을 우리 팀에게 유리하게 바꿀 작전을 세워라!'
+    },
+    {
+      category: '시간 제한',
+      title: '30초 뒤 우천 취소! ☔',
+      description: '9회 말, 현재 점수는 1점 차로 지고 있다. 그런데 갑자기 폭우가 쏟아지기 시작했다! 심판은 30초 뒤 경기를 중단한다고 선언했다. 주자는 3루에 있고, 이번 공격이 사실상 마지막 기회다.',
+      mission: '단 30초 안에 주자를 홈으로 불러들여 역전할 초고속 작전을 세워라!'
+    },
+    {
+      category: '상상력 대결',
+      title: '베이스가 사라졌다?! 🏃',
+      description: '경기 도중 2루 베이스가 감쪽같이 사라졌다! 주자는 2루로 달려가고 있는데 밟을 베이스가 없다. 심판도 당황한 상황. 베이스를 다시 설치하기까지는 시간이 걸리고, 상대 팀 수비수들은 이미 주자를 잡으러 달려오고 있다.',
+      mission: '사라진 베이스 문제를 해결하고 주자를 안전하게 진루시킬 기발한 방법을 찾아라!'
+    },
+    {
+      category: '최종 위기',
+      title: '최종 보스 등장! 👑',
+      description: '상대 팀에서 전설의 선수가 등장했다. 별명은 ‘무적의 4번 타자’. 지금까지 모든 경기에서 홈런만 기록했으며, 어떤 투수의 공도 놓치지 않는다. 우리 팀의 평범한 수비 전략으로는 절대 막을 수 없는 상대다.',
+      mission: '팀원들의 특수 능력을 총동원해 최종 보스의 약점을 찾아내고 완벽하게 제압할 작전을 세워라!'
+    },
+    {
+      category: '이모지 작전',
+      title: '이거 제 이모지야! 🐸',
+      description: '갑자기 구단 전광판에서 선수들의 이름이 모두 사라졌다! 대신 선수마다 자신을 가장 잘 표현하는 이모지 하나가 배정됐다. 이제 경기 중 팀원들과 작전을 공유할 때도 말이나 글자를 사용할 수 없고, 오직 이모지와 몸짓으로만 소통해야 한다. 상대 팀도 이 모습을 지켜보고 있다!',
+      mission: '팀원들의 이모지를 활용해 상대 팀이 해독할 수 없는 작전 체계를 만들고 경기를 승리로 이끌어라!'
+    },
+    {
+      category: '특수 경기',
+      title: '찹쌀떡 공 대란! 🍡',
+      description: '경기 직전, 야구공이 전부 찹쌀떡처럼 변해버렸다! 공을 한 번 잡으면 손이나 글러브에 찰싹 달라붙고, 힘껏 던져도 쉽게 떨어지지 않는다. 평소처럼 공을 주고받는 플레이는 불가능해졌다. 기존의 야구 상식은 모두 통하지 않는 상황!',
+      mission: '찹쌀떡 공의 끈적한 특성을 오히려 무기로 활용해 상대 팀을 당황시킬 작전을 세워라!'
+    },
+    {
+      category: '플레이 스타일 대결',
+      title: '장원영 vs 밤티 ✨🥔',
+      description: '오늘 경기에는 특별한 룰이 적용된다! 모든 플레이는 관중과 심판의 평가를 받아야 하며, 완벽하고 센스 있는 플레이는 ‘장원영’, 어설프고 엉망인 플레이는 ‘밤티’ 판정을 받는다. 장원영 판정을 받으면 보너스 점수 2점! 반면 밤티 판정을 받으면 상대 팀에게 1점을 내줘야 한다. 우리 팀은 과연 장원영이 될 수 있을까?',
+      mission: '팀원들의 특수 능력을 조합해 완벽한 팀워크와 센스가 돋보이는 ‘장원영급 플레이’를 만들어라!'
+    },
+    {
+      category: 'AI 치트키',
+      title: '딸깍, 홈런 제조 완료! 🖱️',
+      description: '상대 팀이 최신 AI 자동 승리 시스템을 개발했다! 버튼을 단 한 번 누르면 우리 팀 선수들의 능력과 약점을 분석해 완벽한 수비 전략을 자동으로 만들어 낸다. 이제 상대 팀은 우리 공격을 완벽하게 막을 준비를 마쳤다. 하지만 AI가 예측하지 못한 단 하나의 변수가 남아 있다. 바로 우리 선수들의 특수 능력이다!',
+      mission: 'AI의 완벽한 수비 전략을 무력화하고 상대가 전혀 예상하지 못한 홈런 작전을 만들어라!'
+    },
+    {
+      category: '최소한의 움직임',
+      title: '우리 구단, 쉬었음 청년 모드?! 🛋️',
+      description: '우리 팀 선수들이 단체로 휴식 모드에 돌입했다! 누구도 뛰고 싶어 하지 않고, 최대한 움직이지 않으려 한다. 하지만 경기는 이미 시작됐고 상대 팀은 공격을 준비하고 있다. 선수들이 직접 움직일 수 있는 기회는 각자 단 한 번뿐이다!',
+      mission: '최소한의 움직임으로 최대의 효과를 낼 수 있도록 선수들의 특수 능력을 조합해 승리 작전을 세워라!'
+    },
+    {
+      category: '레전드 보존 프로젝트',
+      title: '우리 최애 선수 동결건조 시켜야 함 🧊',
+      description: '우리 팀에는 영원히 간직하고 싶은 레전드 선수가 있다. 그런데 이 선수가 오늘을 마지막으로 은퇴한다고 선언했다! 구단은 선수의 가장 빛나는 순간을 영원히 보존하기 위해 동결건조 프로젝트를 시작했다. 이번 경기가 끝나기 전, 레전드 선수에게 최고의 순간을 선물해야 한다.',
+      mission: '팀원들의 특수 능력을 총동원해 레전드 선수의 전성기를 재현하고, 모두가 기억할 최고의 마지막 플레이를 만들어라!'
+    }
+  ];
+
+  const machine = document.getElementById('machine');
+  const lever = document.getElementById('lever');
+  const paperLayer = document.getElementById('paperLayer');
+  const paperCategory = document.getElementById('paperCategory');
+  const paperTitle = document.getElementById('paperTitle');
+  const paperDescription = document.getElementById('paperDescription');
+  const paperMission = document.getElementById('paperMission');
+  const paperNumber = document.getElementById('paperNumber');
+  const status = document.getElementById('status');
+  let busy = false;
+  let pointerStartY = null;
+  let drawTimerIds = [];
+
+  function clearTimers() {
+    drawTimerIds.forEach(clearTimeout);
+    drawTimerIds = [];
+  }
+  function later(fn, ms) {
+    drawTimerIds.push(setTimeout(fn, ms));
+  }
+  function closePaper() {
+    paperLayer.classList.remove('visible');
+    paperLayer.setAttribute('aria-hidden', 'true');
+  }
+  function resetMotionClasses() {
+    machine.classList.remove('pulling', 'shaking', 'dispensing', 'opening');
+    void machine.offsetWidth;
+  }
+  function showMission(item, index) {
+    paperCategory.textContent = item.category;
+    paperTitle.textContent = item.title;
+    paperDescription.textContent = item.description;
+    paperMission.textContent = item.mission;
+    paperNumber.textContent = 'MATCH NO. ' + String(index + 1).padStart(2, '0');
+    paperLayer.classList.add('visible');
+    paperLayer.setAttribute('aria-hidden', 'false');
+    status.textContent = '추첨 결과: ' + item.title + ' ' + item.description + ' 미션: ' + item.mission;
+  }
+  function draw() {
+    if (busy) return;
+    busy = true;
+    clearTimers();
+    closePaper();
+    resetMotionClasses();
+
+    // Every draw is an independent, uniform 1-in-12 selection. Repeats are allowed.
+    const index = Math.floor(Math.random() * missions.length);
+    const selected = missions[index];
+
+    machine.classList.add('busy', 'pulling', 'shaking');
+    later(() => machine.classList.remove('pulling'), 260);
+    later(() => {
+      machine.classList.remove('shaking');
+      machine.classList.add('dispensing');
+    }, 520);
+    later(() => machine.classList.add('opening'), 1120);
+    later(() => {
+      showMission(selected, index);
+    }, 1430);
+    later(() => {
+      machine.classList.remove('busy');
+      busy = false;
+    }, 2020);
+  }
+
+  lever.addEventListener('pointerdown', (event) => {
+    if (busy) return;
+    pointerStartY = event.clientY;
+    try { lever.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+  lever.addEventListener('pointerup', (event) => {
+    if (pointerStartY === null || busy) { pointerStartY = null; return; }
+    const delta = event.clientY - pointerStartY;
+    pointerStartY = null;
+    // A short press also works as a pull; dragging downward feels like a real lever.
+    if (delta >= 0 || Math.abs(delta) < 12) draw();
+  });
+  lever.addEventListener('pointercancel', () => { pointerStartY = null; });
+  lever.addEventListener('keydown', (event) => {
+    if ((event.key === 'Enter' || event.key === ' ') && !busy) {
+      event.preventDefault();
+      draw();
+    }
+  });
+  paperLayer.addEventListener('click', (event) => {
+    if (event.target === paperLayer) closePaper();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && paperLayer.classList.contains('visible')) closePaper();
+  });
+
+  // Guardrail: exactly twelve balls remain in the globe throughout every draw.
+  if (document.querySelectorAll('#balls .ball').length !== 12) {
+    console.error('The machine must contain exactly 12 balls.');
+  }
+})();
+</script>
+</body>
+</html>
